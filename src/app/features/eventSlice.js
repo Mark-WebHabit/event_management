@@ -9,6 +9,7 @@ const initialState = {
   accomplishedEvents: 0,
   totalEvents: 0,
   yearlyForecastingArray: [],
+  monthlyForeCastingArray: []
 };
 
 export const eventSlice = createSlice({
@@ -73,6 +74,51 @@ export const eventSlice = createSlice({
       });
       state.yearlyForecastingArray = newEvents;
     },
+
+    setMonthlyForecastingArray: (state, action) => {
+      if(state.events?.length < 0){
+        return
+      }
+      const currentYear = new Date().getFullYear();
+      const arr = [];
+      const months = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
+
+      const thisYearEvent = state.events.filter((event) => {
+        const startYear = new Date(event.startDateTime).getFullYear();
+
+        if(parseInt(currentYear) == parseInt(startYear) ){
+          return event
+        }
+      })
+
+      if(!thisYearEvent  || thisYearEvent.length <= 0){
+      return
+      }
+
+      thisYearEvent.forEach((event) => {
+        const month = months[new Date(event.startDateTime).getMonth()]
+
+        if(month == action.payload){
+          arr.push(event)
+        }
+
+        
+      })
+      state.monthlyForeCastingArray = arr
+    }
   },
 });
 
@@ -81,6 +127,7 @@ export const {
   countUpComingEvents,
   countTotalEvents,
   setYearlyForcastingEventArray,
+  setMonthlyForecastingArray
 } = eventSlice.actions;
 
 export default eventSlice.reducer;

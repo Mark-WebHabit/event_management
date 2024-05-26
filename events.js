@@ -13,7 +13,7 @@ export const events = [
     title: "Business Workshop",
     description: "A workshop on business strategies and marketing.",
     duration: "3 hours",
-    startDateTime: "2024-06-02T13:00:00Z",
+    startDateTime: "2024-05-05T13:00:00Z",
     endDateTime: "2024-06-02T16:00:00Z",
     status: "Scheduled",
   },
@@ -22,9 +22,9 @@ export const events = [
     title: "Engineering Expo",
     description: "An expo showcasing innovative engineering projects.",
     duration: "4 hours",
-    startDateTime: "2024-06-03T09:00:00Z",
+    startDateTime: "2024-05-03T09:00:00Z",
     endDateTime: "2024-06-03T13:00:00Z",
-    status: "Scheduled",
+    status: "Accomplished",
   },
   {
     objectId: "4",
@@ -51,7 +51,7 @@ export const events = [
     duration: "4 hours",
     startDateTime: "2023-12-10T10:00:00Z",
     endDateTime: "2023-12-10T14:00:00Z",
-    status: "Scheduled",
+    status: "Accomplished",
   },
   {
     objectId: "7",
@@ -60,6 +60,6 @@ export const events = [
     duration: "3 hours",
     startDateTime: "2023-11-15T11:00:00Z",
     endDateTime: "2023-11-15T14:00:00Z",
-    status: "Scheduled",
+    status: "Accomplished",
   },
 ];

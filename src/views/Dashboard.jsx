@@ -2,30 +2,35 @@ import React, { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { useSelector, useDispatch } from "react-redux";
 import Chart from "chart.js/auto"; // Import Chart.js library
+import { Bar } from 'react-chartjs-2';
 import {
   countUpComingEvents,
   countAccomplishedEvents,
   countTotalEvents,
   setYearlyForcastingEventArray,
+  setMonthlyForecastingArray
 } from "../app/features/eventSlice";
+
+const months = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
 
 const Dashboard = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
+  const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
+  const [barData, setBarData] = useState([])
 
   const {
     upComingEvents,
@@ -33,10 +38,12 @@ const Dashboard = () => {
     totalEvents,
     events,
     yearlyForecastingArray,
+    monthlyForeCastingArray
   } = useSelector((state) => state.events);
 
   const dispatch = useDispatch();
   const yearlyForecastingChartRef = useRef(null);
+
 
   useEffect(() => {
     dispatch(countUpComingEvents());
@@ -61,6 +68,56 @@ const Dashboard = () => {
       updateChart(data);
     }
   }, [yearlyForecastingArray]);
+
+  useEffect(() => {
+    if (selectedYear) {
+      dispatch(setYearlyForcastingEventArray(selectedYear));
+      dispatch(setMonthlyForecastingArray("May"))
+
+    }
+  }, [selectedYear]);
+
+  useEffect(() => {
+    if(selectedMonth){
+      dispatch(setMonthlyForecastingArray(selectedMonth))
+    }
+  }, [selectedMonth])
+
+  useEffect(() => {
+    const getStatusPercentage = (status) => {
+      const total = monthlyForeCastingArray.length;
+      const statusCount = monthlyForeCastingArray.filter(item => item.status === status).length;
+      return ((statusCount / total) * 100).toFixed(2);
+    };
+
+    const data = {
+      labels: ['Scheduled', 'Accomplished'],
+      datasets: [
+        {
+          label: 'Status Percentage',
+          data: [getStatusPercentage('Scheduled'), getStatusPercentage('Accomplished')],
+          backgroundColor: ['dodgerblue', 'lightgreen'],
+          hoverBackgroundColor: ['deepskyblue', 'limegreen'],
+          borderWidth: 1,
+        },
+      ],
+    };
+
+    const options = {
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            stepSize: 100, // Set your desired step size here
+          },
+        },
+      },
+    };
+
+    setBarData({data, options});
+  }, [monthlyForeCastingArray]);
+
+
 
   const updateChart = (data) => {
     const ctx = yearlyForecastingChartRef.current.getContext("2d");
@@ -112,17 +169,15 @@ const Dashboard = () => {
     });
   };
 
-  useEffect(() => {
-    if (selectedYear) {
-      dispatch(setYearlyForcastingEventArray(selectedYear));
-    }
-  }, [selectedYear]);
+
 
   const handleChangeYear = (e) => {
     const year = parseInt(e.target.value);
 
     setSelectedYear(year);
   };
+
+  
 
   const Card = ({ number, description }) => {
     return (
@@ -159,15 +214,16 @@ const Dashboard = () => {
         {/* chart for monthly forecasting */}
 
         <ChartWrapper>
-          <MonthSelect>
-            <option>Select Month</option>
-            {months.map((month, index) => (
-              <option key={index} value={index}>
+          <MonthSelect value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
+            {months && months.map((month, index) => (
+              <option key={index} value={month}>
                 {month}
               </option>
             ))}
           </MonthSelect>
-          ;
+          {barData && barData?.data?.labels && (
+    <Bar data={barData?.data} options={barData.options}  className="chart"/>
+  )}
         </ChartWrapper>
       </ChartContainer>
     </Container>
@@ -245,11 +301,15 @@ const YearSelect = styled.select`
 const ChartWrapper = styled.div`
   min-width: 40%;
   max-width: 1000px;
+  aspect-ratio: 4 / 3;
+  displaay: flex;
+  flex-direction column;
+  flex-shrink: 0;
+  flex-grow: 0;
 
   & .chart {
     box-shadow: 0px 0px 10px 0px dodgerblue;
-    padding: 0.5em;
-    flex-shrink: 0;
+    
   }
 `;
 
