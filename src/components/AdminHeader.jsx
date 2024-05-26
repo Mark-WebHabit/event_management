@@ -1,6 +1,7 @@
 import React from "react";
 import styled, { keyframes } from "styled-components";
 import { FaChartPie } from "react-icons/fa";
+import { FaPeopleGroup } from "react-icons/fa6";
 
 import { useNavigate } from "react-router-dom";
 
@@ -9,10 +10,17 @@ const AdminHeader = () => {
   return (
     <HeaderContainer>
       <Logo src="/logo.png" alt="Logo" />
+      <Wrapper>
+
       <PageName onClick={() => navigate("dashboard")}>
         <FaChartPie />
-        DASHBOARD
+        ADMIN
       </PageName>
+      <PageName onClick={() => navigate("events")}>
+        <FaPeopleGroup />
+        EVENTS
+      </PageName>
+      </Wrapper>
     </HeaderContainer>
   );
 };
@@ -44,6 +52,12 @@ const HeaderContainer = styled.div`
   box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
   animation: ${fadeIn} 1s ease;
 `;
+const Wrapper = styled.div`
+  display: flex;
+  gap: 1em;
+  flex-wrap: wrap;
+  align-items: center;
+`
 
 const PageName = styled.h1`
   margin: 0;
