@@ -5,6 +5,8 @@ import { FaUser, FaLock } from "react-icons/fa";
 import InputGroup from "../components/InputGroup";
 import FormButton from "../components/FormButton";
 
+import { app, db } from "../app/firebase.js";
+
 const Login = () => {
   const [formData, setFormData] = useState({
     username: "",

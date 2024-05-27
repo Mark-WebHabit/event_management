@@ -1,12 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import styled from 'styled-components';
-import { useSelector } from 'react-redux';
-import { formatDateTime } from '../utilities/date.js';
+import React, { useEffect, useState } from "react";
+import styled from "styled-components";
+import { useSelector } from "react-redux";
+import { formatDateTime } from "../utilities/date.js";
 
 const Events = () => {
   const [filteredData, setFilteredData] = useState([]);
-  const [search, setSearch] = useState('');
-  const [filterOption, setFilterOption] = useState('all');
+  const [search, setSearch] = useState("");
+  const [filterOption, setFilterOption] = useState("all");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [newEvent, setNewEvent] = useState({
+    title: "",
+    description: "",
+    startDateTime: "",
+    endDateTime: "",
+    status: "Scheduled",
+    picture: null,
+  });
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const { events } = useSelector((state) => state.events);
 
   useEffect(() => {
@@ -14,7 +27,7 @@ const Events = () => {
       let filtered = events.filter((event) =>
         event.title.toLowerCase().includes(search.toLowerCase())
       );
-      if (filterOption !== 'all') {
+      if (filterOption !== "all") {
         filtered = filtered.filter((event) => event.status === filterOption);
       }
       setFilteredData(filtered);
@@ -29,8 +42,80 @@ const Events = () => {
     setFilterOption(e.target.value);
   };
 
+  const handleCardClick = (event) => {
+    setSelectedEvent(event);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedEvent(null);
+  };
+
+  const handleAddEventClick = () => {
+    setIsAddModalOpen(true);
+  };
+
+  const handleAddEventClose = () => {
+    setIsAddModalOpen(false);
+    setNewEvent({
+      title: "",
+      description: "",
+      startDateTime: "",
+      endDateTime: "",
+      status: "Scheduled",
+      picture: null,
+    });
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewEvent((prevEvent) => ({
+      ...prevEvent,
+      [name]: value,
+    }));
+  };
+
+  const handleFileChange = (e) => {
+    setNewEvent((prevEvent) => ({
+      ...prevEvent,
+      picture: e.target.files[0],
+    }));
+  };
+
+  const handleAddEventSubmit = (e) => {
+    e.preventDefault();
+
+    // Example validation
+    if (!newEvent.title) {
+      setErrorMessage("Title is required.");
+      setIsErrorModalOpen(true);
+      return;
+    }
+    if (!newEvent.startDateTime || !newEvent.endDateTime) {
+      setErrorMessage("Both start and end date-time are required.");
+      setIsErrorModalOpen(true);
+      return;
+    }
+    if (new Date(newEvent.startDateTime) >= new Date(newEvent.endDateTime)) {
+      setErrorMessage("Start date-time must be before end date-time.");
+      setIsErrorModalOpen(true);
+      return;
+    }
+
+    // Submit the new event
+    console.log("New Event:", newEvent);
+    handleAddEventClose();
+  };
+
   const Card = ({ card }) => (
-    <CardWrapper $bg={'/placeholder.jpg'} $status={card.status}>
+    <CardWrapper
+      $bg={
+        card.picture ? URL.createObjectURL(card.picture) : "/placeholder.jpg"
+      }
+      $status={card.status}
+      onClick={() => handleCardClick(card)}
+    >
       <div className="wrapper">
         <p className="title">{card.title}</p>
         <div className="rest">
@@ -64,11 +149,10 @@ const Events = () => {
           <option value="Accomplished">Accomplished</option>
         </FilterStatus>
         <TriggerModal>
-          <AddEvent>+ Event</AddEvent>
+          <AddEvent onClick={handleAddEventClick}>+ Event</AddEvent>
         </TriggerModal>
       </QuerySection>
 
-      {/* events */}
       {filteredData && filteredData.length > 0 ? (
         <EventSection>
           {filteredData.map((event) => (
@@ -77,6 +161,119 @@ const Events = () => {
         </EventSection>
       ) : (
         <NoEventsMessage>No events yet</NoEventsMessage>
+      )}
+
+      {isModalOpen && selectedEvent && (
+        <Modal>
+          <ModalContent>
+            <ModalHeader>
+              <ModalTitle>{selectedEvent.title}</ModalTitle>
+              <CloseButton onClick={handleCloseModal}>&times;</CloseButton>
+            </ModalHeader>
+            <ModalBody>
+              <img
+                src={
+                  selectedEvent.picture
+                    ? URL.createObjectURL(selectedEvent.picture)
+                    : "/placeholder.jpg"
+                }
+                alt="Event"
+              />
+              <p>{selectedEvent.description}</p>
+              <p>
+                <strong>Status:</strong> {selectedEvent.status}
+              </p>
+              <p>
+                <strong>Start:</strong>{" "}
+                {formatDateTime(selectedEvent.startDateTime)}
+              </p>
+              <p>
+                <strong>End:</strong>{" "}
+                {formatDateTime(selectedEvent.endDateTime)}
+              </p>
+            </ModalBody>
+            <ModalFooter>
+              <EditButton>Edit</EditButton>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      )}
+
+      {isAddModalOpen && (
+        <Modal>
+          <ModalContent>
+            <ModalHeader>
+              <ModalTitle>Add Event</ModalTitle>
+              <CloseButton onClick={handleAddEventClose}>&times;</CloseButton>
+            </ModalHeader>
+            <ModalBody>
+              <Form onSubmit={handleAddEventSubmit}>
+                <Label>
+                  Title:
+                  <Input
+                    type="text"
+                    name="title"
+                    value={newEvent.title}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </Label>
+                <Label>
+                  Description:
+                  <TextArea
+                    name="description"
+                    value={newEvent.description}
+                    onChange={handleInputChange}
+                    maxLength="200"
+                    required
+                  />
+                  <CharCount>
+                    {200 - newEvent.description.length} characters left
+                  </CharCount>
+                </Label>
+                <Label>
+                  Start DateTime:
+                  <Input
+                    type="datetime-local"
+                    name="startDateTime"
+                    value={newEvent.startDateTime}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </Label>
+                <Label>
+                  End DateTime:
+                  <Input
+                    type="datetime-local"
+                    name="endDateTime"
+                    value={newEvent.endDateTime}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </Label>
+                <Label>
+                  Upload Picture:
+                  <Input
+                    type="file"
+                    name="picture"
+                    onChange={handleFileChange}
+                    accept="image/*"
+                  />
+                </Label>
+                <ModalFooter>
+                  <AddEventButton type="submit">Add Event</AddEventButton>
+                </ModalFooter>
+              </Form>
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
+
+      {isErrorModalOpen && (
+        <ErrorModal
+          message={errorMessage}
+          onClose={() => setIsErrorModalOpen(false)}
+        />
       )}
     </Container>
   );
@@ -173,10 +370,11 @@ const CardWrapper = styled.div`
   background: url(${(props) => props.$bg}) no-repeat center center / cover;
   cursor: pointer;
   transition: all 200ms;
-  box-shadow: 0px 0px 5px 2px ${(props) =>
-    props.$status === 'Accomplished'
-      ? 'rgba(0,255,0, 0.6)'
-      : 'rgba(255,0,0, 0.6)'};
+  box-shadow: 0px 0px 5px 2px
+    ${(props) =>
+      props.$status === "Accomplished"
+        ? "rgba(0,255,0, 0.6)"
+        : "rgba(255,0,0, 0.6)"};
 
   &:hover {
     scale: 0.9;
@@ -241,4 +439,173 @@ const NoEventsMessage = styled.div`
   text-align: center;
   font-size: 1.5rem;
   color: grey;
+`;
+
+const Modal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+  background: white;
+  padding: 1.5em;
+  border-radius: 0.5em;
+  width: 80%;
+  max-width: 500px;
+  position: relative;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e5e5e5;
+  padding-bottom: 0.5em;
+  margin-bottom: 1em;
+`;
+
+const ModalTitle = styled.h2`
+  margin: 0;
+`;
+
+const CloseButton = styled.span`
+  font-size: 1.5rem;
+  cursor: pointer;
+`;
+
+const ModalBody = styled.div`
+  img {
+    width: 100%;
+    height: auto;
+    margin-bottom: 1em;
+  }
+
+  p {
+    margin: 0.5em 0;
+  }
+`;
+
+const ModalFooter = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 1em;
+  border-top: 1px solid #e5e5e5;
+`;
+
+const EditButton = styled.button`
+  font-size: 1.2rem;
+  font-weight: bold;
+  padding: 0.5em 1em;
+  border-radius: 0.3em;
+  border: none;
+  cursor: pointer;
+  background-color: dodgerblue;
+  color: white;
+  transition: all 200ms;
+
+  &:hover {
+    background-color: red;
+  }
+`;
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+`;
+
+const Label = styled.label`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  font-weight: bold;
+`;
+
+const Input = styled.input`
+  padding: 0.5em;
+  border: 1px solid #ccc;
+  border-radius: 0.3em;
+`;
+
+const TextArea = styled.textarea`
+  height: 100px;
+  padding: 0.5em;
+  border: 1px solid #ccc;
+  border-radius: 0.3em;
+  resize: none;
+  overflow-y: auto;
+`;
+
+const CharCount = styled.span`
+  font-size: 0.8rem;
+  color: grey;
+  text-align: right;
+`;
+
+const AddEventButton = styled.button`
+  font-size: 1.2rem;
+  font-weight: bold;
+  padding: 0.5em 1em;
+  border-radius: 0.3em;
+  border: none;
+  cursor: pointer;
+  background-color: dodgerblue;
+  color: white;
+  transition: all 200ms;
+
+  &:hover {
+    background-color: red;
+  }
+`;
+
+const ErrorModalWrapper = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+const ErrorModalContent = styled.div`
+  background: white;
+  padding: 1.5em;
+  border-radius: 0.5em;
+  width: 80%;
+  max-width: 400px;
+  text-align: center;
+`;
+
+const ErrorMessage = styled.p`
+  font-size: 1.2rem;
+  color: red;
+`;
+
+const CloseErrorButton = styled.button`
+  margin-top: 1em;
+  padding: 0.5em 1em;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 0.3em;
+  border: none;
+  cursor: pointer;
+  background-color: dodgerblue;
+  color: white;
+
+  &:hover {
+    background-color: red;
+  }
 `;

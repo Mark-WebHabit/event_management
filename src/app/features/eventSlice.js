@@ -1,23 +1,26 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-// dummy data
-import { events } from "../../../events";
-
 const initialState = {
-  events,
+  events: [],
   upComingEvents: 0,
   accomplishedEvents: 0,
   totalEvents: 0,
   yearlyForecastingArray: [],
-  monthlyForeCastingArray: []
+  monthlyForeCastingArray: [],
 };
 
 export const eventSlice = createSlice({
   name: "event",
   initialState,
   reducers: {
+    handleSetEvents: (state, action) => {
+      if (!action.payload) {
+        return;
+      }
+      state.events = action.payload;
+    },
     countUpComingEvents: (state) => {
-      if (state.events?.length < 0) {
+      if (state.events?.length <= 0) {
         return;
       }
       const currentDate = new Date();
@@ -35,7 +38,7 @@ export const eventSlice = createSlice({
     },
 
     countAccomplishedEvents: (state) => {
-      if (state.events?.length < 0) {
+      if (state.events?.length <= 0) {
         return;
       }
       const currentDate = new Date();
@@ -53,7 +56,7 @@ export const eventSlice = createSlice({
     },
 
     countTotalEvents: (state) => {
-      if (state.events?.length < 0) {
+      if (state.events?.length <= 0) {
         return;
       }
 
@@ -61,11 +64,11 @@ export const eventSlice = createSlice({
     },
 
     setYearlyForcastingEventArray: (state, action) => {
-      if (state.events?.length < 0) {
+      if (state.events?.length <= 0) {
         return;
       }
 
-      const newEvents = events.filter((event) => {
+      const newEvents = state.events.filter((event) => {
         const startDate = new Date(event.startDateTime).getFullYear();
 
         if (startDate.toString() == action.payload) {
@@ -76,8 +79,8 @@ export const eventSlice = createSlice({
     },
 
     setMonthlyForecastingArray: (state, action) => {
-      if(state.events?.length < 0){
-        return
+      if (state.events?.length <= 0) {
+        return;
       }
       const currentYear = new Date().getFullYear();
       const arr = [];
@@ -99,26 +102,26 @@ export const eventSlice = createSlice({
       const thisYearEvent = state.events.filter((event) => {
         const startYear = new Date(event.startDateTime).getFullYear();
 
-        if(parseInt(currentYear) == parseInt(startYear) ){
-          return event
+        if (parseInt(currentYear) == parseInt(startYear)) {
+          return event;
         }
-      })
+      });
 
-      if(!thisYearEvent  || thisYearEvent.length <= 0){
-      return
+      if (!thisYearEvent || thisYearEvent.length <= 0) {
+        return;
       }
 
       thisYearEvent.forEach((event) => {
-        const month = months[new Date(event.startDateTime).getMonth()]
+        const month = months[new Date(event.startDateTime).getMonth()];
 
-        if(month == action.payload){
-          arr.push(event)
+        if (month == action.payload) {
+          arr.push(event);
         }
+      });
+      state.monthlyForeCastingArray = arr;
+    },
 
-        
-      })
-      state.monthlyForeCastingArray = arr
-    }
+    handleAddEvent: (state, action) => {},
   },
 });
 
@@ -127,7 +130,8 @@ export const {
   countUpComingEvents,
   countTotalEvents,
   setYearlyForcastingEventArray,
-  setMonthlyForecastingArray
+  setMonthlyForecastingArray,
+  handleSetEvents,
 } = eventSlice.actions;
 
 export default eventSlice.reducer;

@@ -9,17 +9,33 @@ const InputGroup = ({
   value,
   onChange,
   icon: Icon,
+  options,
+  disabled,
 }) => (
   <InputWrapper>
     {Icon && <Icon className="icon" />}
-    <Input
-      type={type}
-      placeholder={placeholder}
-      name={name}
-      value={value}
-      onChange={onChange}
-      required
-    />
+    {type === "select" ? (
+      <Select name={name} value={value} onChange={onChange} disabled={disabled}>
+        <option value="" disabled>
+          {placeholder}
+        </option>
+        {options &&
+          options.length >= 0 &&
+          options.map((option, i) => (
+            <option key={i} value={option.value}>
+              {option}
+            </option>
+          ))}
+      </Select>
+    ) : (
+      <Input
+        type={type}
+        placeholder={placeholder}
+        name={name}
+        value={value}
+        onChange={onChange}
+      />
+    )}
   </InputWrapper>
 );
 
@@ -48,6 +64,24 @@ const Input = styled.input`
 
   &::placeholder {
     color: #999;
+  }
+`;
+
+const Select = styled.select`
+  width: 100%;
+  padding: 0.75rem;
+  padding-left: 2.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  color: #333;
+  background-color: #fff;
+  transition: border-color 0.3s;
+  margin-left: 0.5em;
+
+  &:focus {
+    border-color: #007bff;
+    outline: none;
   }
 `;
 

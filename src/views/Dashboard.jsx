@@ -2,13 +2,13 @@ import React, { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { useSelector, useDispatch } from "react-redux";
 import Chart from "chart.js/auto"; // Import Chart.js library
-import { Bar } from 'react-chartjs-2';
+import { Bar } from "react-chartjs-2";
 import {
   countUpComingEvents,
   countAccomplishedEvents,
   countTotalEvents,
   setYearlyForcastingEventArray,
-  setMonthlyForecastingArray
+  setMonthlyForecastingArray,
 } from "../app/features/eventSlice";
 
 const months = [
@@ -26,11 +26,12 @@ const months = [
   "December",
 ];
 
-
 const Dashboard = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
-  const [barData, setBarData] = useState([])
+  const [selectedMonth, setSelectedMonth] = useState(
+    months[new Date().getMonth()]
+  );
+  const [barData, setBarData] = useState([]);
 
   const {
     upComingEvents,
@@ -38,12 +39,11 @@ const Dashboard = () => {
     totalEvents,
     events,
     yearlyForecastingArray,
-    monthlyForeCastingArray
+    monthlyForeCastingArray,
   } = useSelector((state) => state.events);
 
   const dispatch = useDispatch();
   const yearlyForecastingChartRef = useRef(null);
-
 
   useEffect(() => {
     dispatch(countUpComingEvents());
@@ -72,32 +72,36 @@ const Dashboard = () => {
   useEffect(() => {
     if (selectedYear) {
       dispatch(setYearlyForcastingEventArray(selectedYear));
-      dispatch(setMonthlyForecastingArray("May"))
-
+      dispatch(setMonthlyForecastingArray("May"));
     }
   }, [selectedYear]);
 
   useEffect(() => {
-    if(selectedMonth){
-      dispatch(setMonthlyForecastingArray(selectedMonth))
+    if (selectedMonth) {
+      dispatch(setMonthlyForecastingArray(selectedMonth));
     }
-  }, [selectedMonth])
+  }, [selectedMonth]);
 
   useEffect(() => {
     const getStatusPercentage = (status) => {
       const total = monthlyForeCastingArray.length;
-      const statusCount = monthlyForeCastingArray.filter(item => item.status === status).length;
+      const statusCount = monthlyForeCastingArray.filter(
+        (item) => item.status === status
+      ).length;
       return ((statusCount / total) * 100).toFixed(2);
     };
 
     const data = {
-      labels: ['Scheduled', 'Accomplished'],
+      labels: ["Scheduled", "Accomplished"],
       datasets: [
         {
-          label: 'Status Percentage',
-          data: [getStatusPercentage('Scheduled'), getStatusPercentage('Accomplished')],
-          backgroundColor: ['dodgerblue', 'lightgreen'],
-          hoverBackgroundColor: ['deepskyblue', 'limegreen'],
+          label: "Status Percentage",
+          data: [
+            getStatusPercentage("Scheduled"),
+            getStatusPercentage("Accomplished"),
+          ],
+          backgroundColor: ["dodgerblue", "lightgreen"],
+          hoverBackgroundColor: ["deepskyblue", "limegreen"],
           borderWidth: 1,
         },
       ],
@@ -114,10 +118,8 @@ const Dashboard = () => {
       },
     };
 
-    setBarData({data, options});
+    setBarData({ data, options });
   }, [monthlyForeCastingArray]);
-
-
 
   const updateChart = (data) => {
     const ctx = yearlyForecastingChartRef.current.getContext("2d");
@@ -169,15 +171,11 @@ const Dashboard = () => {
     });
   };
 
-
-
   const handleChangeYear = (e) => {
     const year = parseInt(e.target.value);
 
     setSelectedYear(year);
   };
-
-  
 
   const Card = ({ number, description }) => {
     return (
@@ -214,16 +212,24 @@ const Dashboard = () => {
         {/* chart for monthly forecasting */}
 
         <ChartWrapper>
-          <MonthSelect value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
-            {months && months.map((month, index) => (
-              <option key={index} value={month}>
-                {month}
-              </option>
-            ))}
+          <MonthSelect
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+          >
+            {months &&
+              months.map((month, index) => (
+                <option key={index} value={month}>
+                  {month}
+                </option>
+              ))}
           </MonthSelect>
           {barData && barData?.data?.labels && (
-    <Bar data={barData?.data} options={barData.options}  className="chart"/>
-  )}
+            <Bar
+              data={barData?.data}
+              options={barData.options}
+              className="chart"
+            />
+          )}
         </ChartWrapper>
       </ChartContainer>
     </Container>

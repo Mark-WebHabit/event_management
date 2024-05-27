@@ -1,9 +1,25 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import styled from "styled-components";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { FaUser, FaEnvelope, FaLock } from "react-icons/fa";
+import { PiIdentificationBadgeFill } from "react-icons/pi";
 import InputGroup from "../components/InputGroup";
 import FormButton from "../components/FormButton";
+import ErrorModal from "../components/ErrorModal";
+
+// courses
+import { courseOptions } from "../../courseOptions";
+
+// firebase
+import { app, db } from "../app/firebase";
+import {
+  createUserWithEmailAndPassword,
+  signOut,
+  getAuth,
+  fetchSignInMethodsForEmail,
+  sendEmailVerification,
+} from "firebase/auth";
+import { get, set, ref } from "firebase/database";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -14,19 +30,216 @@ const Register = () => {
     course: "",
     major: "",
     section: "",
+    year: "",
   });
+  const [error, setError] = useState("");
+  const [majorOpt, setMajorOpt] = useState([]);
+  const [yearOpt, setYearOpt] = useState([]);
+  const [sectionOpt, setSectionOpt] = useState([]);
+
+  const navigate = useNavigate();
+
+  // Set the options for Major and reset dependent fields
+  useEffect(() => {
+    if (formData.course === "") {
+      setMajorOpt([]);
+      setFormData((prevState) => ({
+        ...prevState,
+        major: "",
+        year: "",
+        section: "",
+      }));
+      return;
+    }
+
+    const courses = courseOptions.find(
+      (course) => course.course === formData.course
+    )?.majors;
+
+    const majors = courses ? courses.map((c) => c.major) : [];
+    setMajorOpt(majors);
+
+    // Reset dependent fields
+    setFormData((prevState) => ({
+      ...prevState,
+      major: "",
+      year: "",
+      section: "",
+    }));
+  }, [formData.course]);
+
+  // Set the options for year and reset dependent fields
+  useEffect(() => {
+    if (formData.major === "") {
+      setYearOpt([]);
+      setFormData((prevState) => ({
+        ...prevState,
+        year: "",
+        section: "",
+      }));
+      return;
+    }
+
+    const selectedCourse = courseOptions.find(
+      (course) => course.course === formData.course
+    );
+
+    const selectedMajor = selectedCourse?.majors.find(
+      (major) => major.major === formData.major
+    )?.yearLevels;
+
+    const years = selectedMajor ? selectedMajor.map((c) => c.year) : [];
+    setYearOpt(years);
+
+    // Reset dependent fields
+    setFormData((prevState) => ({
+      ...prevState,
+      year: "",
+      section: "",
+    }));
+  }, [formData.major]);
+
+  // Set the options for section
+  useEffect(() => {
+    if (formData.year === "") {
+      setSectionOpt([]);
+      setFormData((prevState) => ({
+        ...prevState,
+        section: "",
+      }));
+      return;
+    }
+
+    const selectedCourse = courseOptions.find(
+      (course) => course.course === formData.course
+    );
+
+    const selectedMajor = selectedCourse?.majors.find(
+      (major) => major.major === formData.major
+    )?.yearLevels;
+
+    const sections =
+      selectedMajor?.find((c) => c.year === parseInt(formData.year))?.section ||
+      [];
+
+    setSectionOpt(sections);
+
+    // Reset dependent fields
+    setFormData((prevState) => ({
+      ...prevState,
+      section: "",
+    }));
+  }, [formData.year]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
     setFormData({
       ...formData,
       [name]: value,
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(formData);
+
+    const { username, studentId, email, password, course, major, section } =
+      formData;
+
+    if (
+      !username ||
+      !studentId ||
+      !email ||
+      !password ||
+      !course ||
+      !major ||
+      !section
+    ) {
+      setError("All Fields Required");
+      return;
+    }
+
+    for (const [key, val] of Object.entries(formData)) {
+      if (!val || val === "") {
+        setError(`${key.charAt(0).toUpperCase() + key.slice(1)} is required`);
+        return;
+      }
+    }
+
+    // Check email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Invalid email format");
+      return;
+    }
+
+    const auth = getAuth(app);
+
+    try {
+      const isUserExists = await fetchSignInMethodsForEmail(auth, email);
+
+      if (isUserExists.length > 0) {
+        setError("This email is already registered. Please use another email");
+        return;
+      }
+
+      const userRef = ref(db, "users");
+      const snapshot = await get(userRef);
+
+      if (snapshot.exists()) {
+        const users = snapshot.val();
+        const existingUser = Object.values(users).find(
+          (user) => user.studentId === studentId && user.email !== email
+        );
+
+        if (existingUser) {
+          setError("Student ID already taken");
+          return;
+        }
+      }
+
+      const userCred = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      const user = userCred.user;
+
+      const newUserRef = ref(db, `users/${user.uid}`);
+
+      await set(newUserRef, {
+        username,
+        email,
+        studentId: studentId.toUpperCase(),
+        major,
+        course,
+        section,
+      });
+
+      await signOut(auth);
+
+      await sendEmailVerification(user);
+      alert("Registered Successfully! Email Verification sent");
+
+      navigate("/login");
+    } catch (err) {
+      // Handle Firebase errors
+      let errorMessage = "An error occurred. Please try again.";
+      if (err.code === "auth/email-already-in-use") {
+        errorMessage =
+          "This email is already registered. Please use another email.";
+      } else if (err.code === "auth/invalid-email") {
+        errorMessage = "Invalid email format.";
+      } else if (err.code === "auth/weak-password") {
+        errorMessage = "Password should be at least 6 characters.";
+      }
+      setError(errorMessage);
+    }
+  };
+
+  const closeErrorModal = () => {
+    setError("");
   };
 
   return (
@@ -49,7 +262,7 @@ const Register = () => {
             name="studentId"
             value={formData.studentId}
             onChange={handleChange}
-            icon={FaUser}
+            icon={PiIdentificationBadgeFill}
           />
           <InputGroup
             type="email"
@@ -59,6 +272,48 @@ const Register = () => {
             onChange={handleChange}
             icon={FaEnvelope}
           />
+
+          <InputGroup
+            type="select"
+            placeholder="Select Course"
+            name="course"
+            value={formData.course}
+            onChange={handleChange}
+            icon={FaUser}
+            options={courseOptions.map((c) => {
+              return c.course;
+            })}
+          />
+          <InputGroup
+            type="select"
+            placeholder="Major"
+            name="major"
+            value={formData.major}
+            onChange={handleChange}
+            icon={FaUser}
+            disabled={formData.course == ""}
+            options={majorOpt}
+          />
+          <InputGroup
+            type="select"
+            placeholder="Year Level"
+            name="year"
+            value={formData.year}
+            onChange={handleChange}
+            icon={FaUser}
+            disabled={formData.major == ""}
+            options={yearOpt}
+          />
+          <InputGroup
+            type="select"
+            placeholder="Section"
+            name="section"
+            value={formData.section}
+            onChange={handleChange}
+            icon={FaUser}
+            disabled={formData.year == ""}
+            options={sectionOpt}
+          />
           <InputGroup
             type="password"
             placeholder="Password"
@@ -67,30 +322,6 @@ const Register = () => {
             onChange={handleChange}
             icon={FaLock}
           />
-          <InputGroup
-            type="text"
-            placeholder="Course"
-            name="course"
-            value={formData.course}
-            onChange={handleChange}
-            icon={FaUser}
-          />
-          <InputGroup
-            type="text"
-            placeholder="Major"
-            name="major"
-            value={formData.major}
-            onChange={handleChange}
-            icon={FaUser}
-          />
-          <InputGroup
-            type="text"
-            placeholder="Section"
-            name="section"
-            value={formData.section}
-            onChange={handleChange}
-            icon={FaUser}
-          />
           <FormButton type="submit">Register</FormButton>
         </Form>
         <LinksContainer>
@@ -98,6 +329,7 @@ const Register = () => {
           <StyledLink to="/login">I have an account</StyledLink>
         </LinksContainer>
       </FormContainer>
+      {error && <ErrorModal message={error} onClose={closeErrorModal} />}
     </RegisterContainer>
   );
 };
