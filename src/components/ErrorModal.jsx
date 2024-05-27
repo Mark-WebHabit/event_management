@@ -1,14 +1,18 @@
 import React from "react";
 import styled from "styled-components";
+import { AiOutlineCloseCircle } from "react-icons/ai";
+
 const ErrorModal = ({ message, onClose }) => {
   return (
     <ModalBackdrop>
       <ModalContent>
         <ModalHeader>
           <Title>Error</Title>
-          <CloseButton onClick={onClose}>&times;</CloseButton>
+          <CloseButton onClick={onClose}>
+            <AiOutlineCloseCircle />
+          </CloseButton>
         </ModalHeader>
-        <ModalBody>{message}</ModalBody>
+        <ErrorMessage>{message}</ErrorMessage>
       </ModalContent>
     </ModalBackdrop>
   );
@@ -30,7 +34,7 @@ const ModalBackdrop = styled.div`
 `;
 
 const ModalContent = styled.div`
-  background: white;
+  background: #ffcccc; /* Error-indicating color */
   padding: 1.5rem;
   border-radius: 8px;
   width: 80%;
@@ -54,9 +58,10 @@ const CloseButton = styled.button`
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
+  color: #ff3333; /* Close icon color */
 `;
 
-const ModalBody = styled.div`
+const ErrorMessage = styled.p`
   font-size: 1rem;
-  color: #333;
+  color: #660000; /* Error message color */
 `;
