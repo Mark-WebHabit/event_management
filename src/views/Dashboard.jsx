@@ -3,6 +3,7 @@ import styled from "styled-components";
 import { useSelector, useDispatch } from "react-redux";
 import Chart from "chart.js/auto"; // Import Chart.js library
 import { Bar } from "react-chartjs-2";
+
 import {
   countUpComingEvents,
   countAccomplishedEvents,
@@ -10,6 +11,8 @@ import {
   setYearlyForcastingEventArray,
   setMonthlyForecastingArray,
 } from "../app/features/eventSlice";
+
+import { fetchStudentCount } from "../app/features/userSlice";
 
 const months = [
   "January",
@@ -41,6 +44,7 @@ const Dashboard = () => {
     yearlyForecastingArray,
     monthlyForeCastingArray,
   } = useSelector((state) => state.events);
+  const { totalStudent } = useSelector((state) => state.user);
 
   const dispatch = useDispatch();
   const yearlyForecastingChartRef = useRef(null);
@@ -50,6 +54,10 @@ const Dashboard = () => {
     dispatch(countAccomplishedEvents());
     dispatch(countTotalEvents());
   }, [events]);
+
+  useEffect(() => {
+    dispatch(fetchStudentCount());
+  }, []);
 
   useEffect(() => {
     // Create or update the chart when the filter changes
@@ -192,7 +200,7 @@ const Dashboard = () => {
         <Card number={upComingEvents} description={"Upcoming Events"} />
         <Card number={accomplishedEvents} description={"Accomplished Events"} />
         <Card number={totalEvents} description={"Total Events Events"} />
-        <Card number={10} description={"Registered User"} />
+        <Card number={totalStudent} description={"Registered User"} />
       </CardWrapper>
 
       <ChartContainer>

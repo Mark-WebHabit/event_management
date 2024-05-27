@@ -2,15 +2,21 @@ import React, { useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import AdminHeader from "../components/AdminHeader";
 import styled from "styled-components";
-import { useDispatch } from "react-redux";
+
+// firebase
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { get, ref } from "firebase/database";
 import { app, db } from "../app/firebase.js";
 
-import { handleSetEvents } from "../app/features/eventSlice";
+// component
+import ErrorModal from "../components/ErrorModal.jsx";
 
-// slices
+// rtk
+import { useDispatch, useSelector } from "react-redux";
+import { handleSetEvents } from "../app/features/eventSlice";
 import { setUser } from "../app/features/userSlice.js";
+import { clearUserError } from "../app/features/userSlice.js";
+import { clearEventError } from "../app/features/eventSlice";
 
 // dummy data
 import { events } from "../../events";
@@ -18,6 +24,8 @@ import { events } from "../../events";
 const Admin = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { userError } = useSelector((state) => state.user);
+  const { eventError } = useSelector((state) => state.events);
 
   useEffect(() => {
     const auth = getAuth(app);
@@ -47,12 +55,27 @@ const Admin = () => {
     dispatch(handleSetEvents(events));
   }, []);
 
+  const handleClearModal = () => {
+    if (userError) {
+      dispatch(clearUserError());
+    }
+
+    if (eventError) {
+      dispatch(clearEventError());
+    }
+  };
   return (
     <Container>
       <AdminHeader />
       <Wrapper className="adminWrapper">
         <Outlet />
       </Wrapper>
+      {userError && (
+        <ErrorModal message={userError} onClose={handleClearModal} />
+      )}
+      {eventError && (
+        <ErrorModal message={eventError} onClose={handleClearModal} />
+      )}
     </Container>
   );
 };

@@ -7,6 +7,7 @@ const initialState = {
   totalEvents: 0,
   yearlyForecastingArray: [],
   monthlyForeCastingArray: [],
+  eventError: null,
 };
 
 export const eventSlice = createSlice({
@@ -121,7 +122,20 @@ export const eventSlice = createSlice({
       state.monthlyForeCastingArray = arr;
     },
 
-    handleAddEvent: (state, action) => {},
+    clearEventError: (state) => {
+      state.eventError = null;
+    },
+  },
+  extraReducers: (builder) => {
+    builder.addMatcher(
+      // Matcher to catch any action with a rejected status
+      (action) => action.type.endsWith("/rejected"),
+      (state, action) => {
+        // Set eventError to the error message from the action payload
+        state.eventError = action.error.message || "An error occurred";
+      }
+    );
+    // Add other extra reducers if needed
   },
 });
 
@@ -132,6 +146,7 @@ export const {
   setYearlyForcastingEventArray,
   setMonthlyForecastingArray,
   handleSetEvents,
+  clearEventError,
 } = eventSlice.actions;
 
 export default eventSlice.reducer;
