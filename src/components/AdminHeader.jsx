@@ -5,9 +5,12 @@ import { FaPeopleGroup } from "react-icons/fa6";
 import { IoLogOut } from "react-icons/io5";
 
 import { useNavigate } from "react-router-dom";
+import { getAuth, signOut } from "firebase/auth";
+import { app } from "../app/firebase";
 
 const AdminHeader = () => {
   const navigate = useNavigate();
+  const auth = getAuth(app);
   return (
     <HeaderContainer>
       <Logo src="/logo.png" alt="Logo" />
@@ -20,7 +23,7 @@ const AdminHeader = () => {
           <FaPeopleGroup />
           EVENTS
         </PageName>
-        <PageName>
+        <PageName onClick={() => signOut(auth)}>
           <IoLogOut />
           LOGOUT
         </PageName>

@@ -2,21 +2,18 @@ import React, { useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { get, ref } from "firebase/database";
-import { db } from "../app/firebase";
+import { db, app } from "../app/firebase";
 
 const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const auth = getAuth();
+    const auth = getAuth(app);
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        console.log(user);
         const userRef = ref(db, `users/${user.uid}`);
 
         const snapshot = (await get(userRef)).val();
-
-        console.log(snapshot);
 
         if (snapshot?.role && snapshot?.role == "admin") {
           navigate("/admin");
