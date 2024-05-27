@@ -2,8 +2,8 @@
 import React from "react";
 import styled from "styled-components";
 
-const FormButton = ({ children, ...props }) => (
-  <Button {...props}>{children}</Button>
+const FormButton = ({ children, loading }) => (
+  <Button disabled={loading}>{children}</Button>
 );
 
 const Button = styled.button`

@@ -1,17 +1,30 @@
 import React, { useState } from "react";
 import styled from "styled-components";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { FaUser, FaLock } from "react-icons/fa";
 import InputGroup from "../components/InputGroup";
 import FormButton from "../components/FormButton";
+import ErrorModal from "../components/ErrorModal.jsx";
 
 import { app, db } from "../app/firebase.js";
+import {
+  fetchSignInMethodsForEmail,
+  getAuth,
+  signInWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
+import { ref, get } from "firebase/database";
 
 const Login = () => {
   const [formData, setFormData] = useState({
-    username: "",
+    email: "",
     password: "",
   });
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const auth = getAuth(app);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -21,9 +34,63 @@ const Login = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(formData);
+    const { email, password } = formData;
+
+    if (!email || !password) {
+      setError("All fields required.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const userCred = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCred?.user;
+
+      if (!user.emailVerified) {
+        await signOut(auth);
+        setError("Please verify your email to login.");
+        setLoading(false);
+        return;
+      }
+
+      const userRef = ref(db, `users/${user.uid}`);
+      const snapshot = await get(userRef);
+
+      if (!snapshot.exists()) {
+        await signOut(auth);
+        setError("Forbidden User");
+        setLoading(false);
+        return;
+      }
+
+      const role = snapshot.val();
+
+      if (role.role == "admin") {
+        navigate("/admin");
+      } else if (role.role == "student") {
+        navigate("student");
+      }
+    } catch (error) {
+      let errorMessage = error.message;
+      if (
+        error.code === "auth/user-not-found" ||
+        error.code === "auth/wrong-password"
+      ) {
+        errorMessage = "Invalid Email or Password";
+      } else if (error.code === "auth/invalid-email") {
+        errorMessage = "Invalid email format.";
+      }
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const closeErrorModal = () => {
+    setError("");
   };
 
   return (
@@ -34,9 +101,9 @@ const Login = () => {
         <Form onSubmit={handleSubmit}>
           <InputGroup
             type="text"
-            placeholder="Username"
-            name="username"
-            value={formData.username}
+            placeholder="Email"
+            name="email"
+            value={formData.email}
             onChange={handleChange}
             icon={FaUser}
           />
@@ -48,12 +115,15 @@ const Login = () => {
             onChange={handleChange}
             icon={FaLock}
           />
-          <FormButton type="submit">Login</FormButton>
+          <FormButton type="submit" loading={loading}>
+            {loading ? "Loading..." : "Login"}
+          </FormButton>
         </Form>
         <LinksContainer>
           <StyledLink to="/register">Create account</StyledLink>
         </LinksContainer>
       </FormContainer>
+      {error && <ErrorModal message={error} onClose={closeErrorModal} />}
     </LoginContainer>
   );
 };

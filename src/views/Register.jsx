@@ -36,6 +36,7 @@ const Register = () => {
   const [majorOpt, setMajorOpt] = useState([]);
   const [yearOpt, setYearOpt] = useState([]);
   const [sectionOpt, setSectionOpt] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -174,12 +175,14 @@ const Register = () => {
     }
 
     const auth = getAuth(app);
+    setLoading(true);
 
     try {
       const isUserExists = await fetchSignInMethodsForEmail(auth, email);
 
       if (isUserExists.length > 0) {
         setError("This email is already registered. Please use another email");
+        setLoading(false);
         return;
       }
 
@@ -194,6 +197,7 @@ const Register = () => {
 
         if (existingUser) {
           setError("Student ID already taken");
+          setLoading(false);
           return;
         }
       }
@@ -215,6 +219,7 @@ const Register = () => {
         major,
         course,
         section,
+        role: "student",
       });
 
       await signOut(auth);
@@ -235,6 +240,8 @@ const Register = () => {
         errorMessage = "Password should be at least 6 characters.";
       }
       setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -322,7 +329,9 @@ const Register = () => {
             onChange={handleChange}
             icon={FaLock}
           />
-          <FormButton type="submit">Register</FormButton>
+          <FormButton type="submit" loading={loading}>
+            {loading ? "Loading..." : "Register"}
+          </FormButton>
         </Form>
         <LinksContainer>
           <StyledLink to="/register-admin">I'm an admin</StyledLink>
