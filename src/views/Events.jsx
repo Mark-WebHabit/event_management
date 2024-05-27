@@ -1,9 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import styled from "styled-components";
+import { QRCodeCanvas } from "qrcode.react";
+
+// utilities
 import { useSelector } from "react-redux";
 import { formatDateTime } from "../utilities/date.js";
-import ErrorModal from "../components/ErrorModal.jsx";
-import { push, ref, set } from "firebase/database";
+
+// firebase
+import { push, ref, set, update } from "firebase/database";
 import {
   ref as storageRef,
   uploadBytes,
@@ -11,6 +15,12 @@ import {
   uploadBytesResumable,
 } from "firebase/storage";
 import { storage, db } from "../app/firebase.js";
+
+// component
+import EditEventForm from "../components/EditEventForm.jsx";
+
+// modals
+import ErrorModal from "../components/ErrorModal.jsx";
 import LoadingModal from "../components/LoadingModal.jsx";
 import SuccessModal from "../components/SuccessModal.jsx";
 
@@ -21,6 +31,7 @@ const Events = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [editSelectedEvent, setEditSelectedEvent] = useState(false);
   const [newEvent, setNewEvent] = useState({
     title: "",
     description: "",
@@ -35,6 +46,8 @@ const Events = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(null);
 
+  const canvasRef = useRef(null);
+
   useEffect(() => {
     if (events) {
       let filtered = events.filter((event) =>
@@ -46,6 +59,14 @@ const Events = () => {
       setFilteredData(filtered);
     }
   }, [events, search, filterOption]);
+
+  useEffect(() => {
+    if (!editSelectedEvent) {
+      return;
+    }
+
+    setIsModalOpen(false);
+  }, [editSelectedEvent]);
 
   const handleSearchChange = (e) => {
     setSearch(e.target.value);
@@ -160,30 +181,38 @@ const Events = () => {
           status: "Scheduled",
           duration: durationInHours,
           picture: url || null,
+          open: true,
         };
 
         await set(newEventRef, data);
-
-        console.log("New Event added");
       } catch (error) {
+        setErrorMessage(error.message);
+        setIsErrorModalOpen(true);
         console.log(error);
       } finally {
         setLoading(false);
       }
     }
 
-    setSuccess("Event Addded Successfully!.");
+    setSuccess("Event Added Successfully!.");
     handleAddEventClose();
+  };
+
+  const handleEditEvent = (event) => {
+    console.log(event);
   };
 
   const Card = ({ card }) => (
     <CardWrapper
-      $bg={
-        card.picture ? URL.createObjectURL(card.picture) : "/placeholder.jpg"
-      }
+      $bg={card.picture ? card.picture : "/placeholder.jpg"}
       $status={card.status}
       onClick={() => handleCardClick(card)}
     >
+      <QRCodeCanvas
+        value={`${window.location.origin}/event/${card.uid}`}
+        style={{ display: "none" }}
+      />
+
       <div className="wrapper">
         <p className="title">{card.title}</p>
         <div className="rest">
@@ -224,7 +253,7 @@ const Events = () => {
       {filteredData && filteredData.length > 0 ? (
         <EventSection>
           {filteredData.map((event) => (
-            <Card key={event.objectId} card={event} />
+            <Card key={event.uid} card={event} />
           ))}
         </EventSection>
       ) : (
@@ -242,7 +271,7 @@ const Events = () => {
               <img
                 src={
                   selectedEvent.picture
-                    ? URL.createObjectURL(selectedEvent.picture)
+                    ? selectedEvent.picture
                     : "/placeholder.jpg"
                 }
                 alt="Event"
@@ -261,10 +290,26 @@ const Events = () => {
               </p>
             </ModalBody>
             <ModalFooter>
-              <EditButton>Edit</EditButton>
+              <EditButton onClick={() => setEditSelectedEvent(true)}>
+                Edit
+              </EditButton>
             </ModalFooter>
           </ModalContent>
         </Modal>
+      )}
+
+      {!isModalOpen && selectedEvent && editSelectedEvent && (
+        <EditEventForm
+          event={selectedEvent}
+          onCancel={() => {
+            setEditSelectedEvent(false);
+            setSelectedEvent(null);
+          }}
+          onSubmit={handleEditEvent}
+          setSuccess={setSuccess}
+          setErrorMessage={setErrorMessage}
+          setIsErrorModalOpen={setIsErrorModalOpen}
+        />
       )}
 
       {isAddModalOpen && (

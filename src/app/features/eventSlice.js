@@ -1,4 +1,7 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+
+import { ref, get, update } from "firebase/database";
+import { db } from "../firebase";
 
 const initialState = {
   events: [],
@@ -10,16 +13,58 @@ const initialState = {
   eventError: null,
 };
 
+export const fetchEvents = createAsyncThunk("events/fetchEvents", async () => {
+  const eventsRef = ref(db, "events");
+  const snapshot = await get(eventsRef);
+  if (snapshot.exists()) {
+    const result = snapshot.val();
+    const keys = Object.keys(result);
+    let arr = [];
+    keys.forEach((key) => {
+      const data = { uid: key, ...result[key] };
+      arr.push(data);
+    });
+    return arr;
+  }
+});
+
+export const statusListener = createAsyncThunk(
+  "events/status-listener",
+  async (_, { getState }) => {
+    try {
+      const { events } = getState().events;
+      const currentDateTime = new Date();
+
+      for (const event of events) {
+        const { uid, startDateTime, endDateTime } = event;
+        const startDateTimeObj = new Date(startDateTime);
+        const endDateTimeObj = new Date(endDateTime);
+
+        if (
+          startDateTimeObj <= currentDateTime &&
+          endDateTimeObj > currentDateTime
+        ) {
+          const currentKeyRef = ref(db, `events/${uid}`);
+          await update(currentKeyRef, { status: "Ongoing" });
+        } else if (
+          startDateTimeObj < currentDateTime &&
+          endDateTimeObj <= currentDateTime
+        ) {
+          const currentKeyRef = ref(db, `events/${uid}`);
+          await update(currentKeyRef, { status: "Accomplished" });
+        }
+      }
+    } catch (error) {
+      console.error("Error in statusListener thunk:", error.message);
+      throw error;
+    }
+  }
+);
+
 export const eventSlice = createSlice({
   name: "event",
   initialState,
   reducers: {
-    handleSetEvents: (state, action) => {
-      if (!action.payload) {
-        return;
-      }
-      state.events = action.payload;
-    },
     countUpComingEvents: (state) => {
       if (state.events?.length <= 0) {
         return;
@@ -125,17 +170,22 @@ export const eventSlice = createSlice({
     clearEventError: (state) => {
       state.eventError = null;
     },
+
+    handleEventStatus: (state) => {},
   },
   extraReducers: (builder) => {
-    builder.addMatcher(
-      // Matcher to catch any action with a rejected status
-      (action) => action.type.endsWith("/rejected"),
-      (state, action) => {
-        // Set eventError to the error message from the action payload
-        state.eventError = action.error.message || "An error occurred";
-      }
-    );
-    // Add other extra reducers if needed
+    builder
+      .addCase(fetchEvents.fulfilled, (state, action) => {
+        state.events = action.payload;
+      })
+      .addMatcher(
+        // Matcher to catch any action with a rejected status
+        (action) => action.type.endsWith("/rejected"),
+        (state, action) => {
+          // Set eventError to the error message from the action payload
+          state.eventError = action.error.message || "An error occurred";
+        }
+      );
   },
 });
 

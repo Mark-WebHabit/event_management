@@ -1,11 +1,11 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import AdminHeader from "../components/AdminHeader";
 import styled from "styled-components";
 
 // firebase
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
-import { get, ref } from "firebase/database";
+import { get, ref, onValue } from "firebase/database";
 import { app, db } from "../app/firebase.js";
 
 // component
@@ -13,19 +13,17 @@ import ErrorModal from "../components/ErrorModal.jsx";
 
 // rtk
 import { useDispatch, useSelector } from "react-redux";
-import { handleSetEvents } from "../app/features/eventSlice";
+import { fetchEvents, statusListener } from "../app/features/eventSlice";
 import { setUser } from "../app/features/userSlice.js";
 import { clearUserError } from "../app/features/userSlice.js";
 import { clearEventError } from "../app/features/eventSlice";
-
-// dummy data
-import { events } from "../../events";
 
 const Admin = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { userError } = useSelector((state) => state.user);
   const { eventError } = useSelector((state) => state.events);
+  const [currentDateTime, setCurrentDateTime] = useState(new Date());
 
   useEffect(() => {
     const auth = getAuth(app);
@@ -52,8 +50,24 @@ const Admin = () => {
 
   // initialize the events state for all admin pages
   useEffect(() => {
-    dispatch(handleSetEvents(events));
+    const eventsRef = ref(db, "events");
+
+    onValue(eventsRef, (snapshot) => {
+      dispatch(fetchEvents());
+    });
+  }, [dispatch]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentDateTime(new Date());
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    dispatch(statusListener());
+  }, [currentDateTime]);
 
   const handleClearModal = () => {
     if (userError) {

@@ -14,6 +14,11 @@ import {
 
 import { fetchStudentCount } from "../app/features/userSlice";
 
+// firebase
+import { db, app } from "../app/firebase";
+import { ref, onValue } from "firebase/database";
+import LoadingModal from "../components/LoadingModal";
+
 const months = [
   "January",
   "February",
@@ -35,6 +40,7 @@ const Dashboard = () => {
     months[new Date().getMonth()]
   );
   const [barData, setBarData] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const {
     upComingEvents,
@@ -75,7 +81,7 @@ const Dashboard = () => {
 
       updateChart(data);
     }
-  }, [yearlyForecastingArray]);
+  }, [yearlyForecastingArray, events]);
 
   useEffect(() => {
     if (selectedYear) {
@@ -127,7 +133,7 @@ const Dashboard = () => {
     };
 
     setBarData({ data, options });
-  }, [monthlyForeCastingArray]);
+  }, [monthlyForeCastingArray, events]);
 
   const updateChart = (data) => {
     const ctx = yearlyForecastingChartRef.current.getContext("2d");
@@ -240,6 +246,8 @@ const Dashboard = () => {
           )}
         </ChartWrapper>
       </ChartContainer>
+
+      {loading && <LoadingModal />}
     </Container>
   );
 };
