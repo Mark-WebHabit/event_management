@@ -7,6 +7,7 @@ import Dashboard from "./views/Dashboard";
 import Events from "./views/Events";
 import EventDetails from "./views/EventDetails";
 import EvaluationForm from "./views/EvaluationForm";
+import NotFound from "./views/NotFound";
 
 // layout
 import Auth from "./layout/Auth";
@@ -34,6 +35,9 @@ function App() {
           <Route index path="events/:id" Component={EventDetails} />
           <Route index path="event/evaluation/:id" Component={EvaluationForm} />
         </Route>
+
+        {/* 404 */}
+        <Route path="*" Component={NotFound} />
       </Routes>
     </Router>
   );

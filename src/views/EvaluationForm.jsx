@@ -1,316 +1,466 @@
-import React, { useEffect, useRef, useState } from 'react'
-import styled from 'styled-components'
-import { IoIosCloseCircle, IoIosCheckmarkCircle   } from "react-icons/io";
-import { FaTrashAlt, FaEdit  } from "react-icons/fa";
-import ErrorModal from '../components/ErrorModal';
-import SuccessModal from '../components/SuccessModal';
+import React, { useEffect, useRef, useState } from "react";
+import styled from "styled-components";
+import { FaInfo } from "react-icons/fa";
+
+import ErrorModal from "../components/ErrorModal";
+import SuccessModal from "../components/SuccessModal";
+import ConfirmationModal from "../components/ConfimationModal";
+import LoadingModal from "../components/LoadingModal";
+
+// component
+import QuestionComponent from "../components/QuestionComponent";
+import CommentComponent from "../components/CommentComponent";
+import { useNavigate, useParams } from "react-router-dom";
+import { get, onValue, ref, set, update } from "firebase/database";
+import { db } from "../app/firebase";
 
 const EvaluationForm = () => {
-    const [questions, setQuestions] = useState({
-        rating: [], comment: []
-    })
-    const [instruction, setInstruction] = useState("")
-    const [addQuestion, setAddQuestion] = useState("rating")
-    const [errorMesage, setErrorMessage] = useState("")
+  const [questions, setQuestions] = useState({
+    rating: [],
+    comment: [],
+  });
+  const [instruction, setInstruction] = useState("");
+  const [addQuestion, setAddQuestion] = useState("rating");
+  const [errorMesage, setErrorMessage] = useState("");
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmationAction, setConfirmationAction] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [event, setEvent] = useState(null);
+  const [releasable, setReleasable] = useState(false);
 
-    const handleAddQuestion = () => {
-        const uid = new Date().toISOString();
-        
-        if (addQuestion === "rating") {
-            setQuestions((prev) => ({
-                ...prev,
-                rating: [...prev.rating, {
-                    questionId: uid,
-                    question: "",
-                    answers: ["1","2", "3", "4", "5"],
-                    saved: false
-                }]
-            }));
-        } else if (addQuestion === "comment") {
-            setQuestions((prev) => ({
-                ...prev,
-                comment: [...prev.comment, {
-                    questionId: uid, 
-                    comment: "",
-                    saved: false
-                }],
-            }));
-        }
+  const [hasEvent, setHasEvent] = useState(false);
+
+  const navigate = useNavigate();
+  const { id } = useParams();
+
+  const eventRef = ref(db, `events/${id}`);
+
+  useEffect(() => {
+    const unsubscribe = onValue(eventRef, (snapshot) => {
+      if (!snapshot.exists()) {
+        navigate("/404");
+      } else {
+        const event = snapshot.val();
+
+        setHasEvent(true);
+        setEvent(event);
+      }
+    });
+
+    return () => {
+      unsubscribe();
     };
+  }, []);
 
-    useEffect(() => {
-        console.log(questions.rating);
-    }, [questions])
-
-
-    const Question = ({questionData}) => {
-        const {questionId, saved, question} = questionData
-        const [text, setText] = useState(question)
-
-        const handleSave = () => {
-            if (!text || text === "") {
-                setErrorMessage("Invalid Question.");
-                return;
-            }
-        
-            // Find the index of the question with the matching questionId
-            const questionIndex = questions.rating.findIndex((q) => q.questionId === questionId);
-        
-            // If the question with the given questionId is found
-            if (questionIndex !== -1) {
-                // Create a copy of the questions array
-                const updatedQuestions = [...questions.rating];
-                
-                // Update the question at the found index
-                updatedQuestions[questionIndex] = {
-                    ...updatedQuestions[questionIndex],
-                    question: text,
-                    saved: true, 
-                    disabled: true
-                };
-        
-                // Update the state with the updated questions array
-                setQuestions({ ...questions, rating: updatedQuestions });
-            } else {
-                // Handle the case when the question with the given questionId is not found
-                console.error("Question not found with ID:", questionId);
-            }
-        };
-
-
-        const handleDelete = () => {
-            const updatedQuestion = [...questions.rating];
-console.log(updatedQuestion);
-            const newQuestions = updatedQuestion.filter((q) => q.questionId != questionId)
-console.log(newQuestions);
-            setQuestions({...questions, rating: newQuestions || []})
-
-        }
-        
-        
-
-
-        return (
-            <QuestionField>
-                <div className="icons">
-                {!saved && <IoIosCloseCircle className='icon'  onClick={handleDelete}/>}
-                {saved && <FaTrashAlt className='icon' onClick={handleDelete} />}
-                {!saved && <IoIosCheckmarkCircle  className='icon' onClick={handleSave}/>}
-                {saved && <FaEdit  className='icon' />}
-
-                </div>
-                <Input placeholder='Add Short Question' required maxLength={150} value={text}  onChange={(e) => setText(e.target.value)} />
-                <QuestionInput>
-                    <RadioInput>
-                        <input type="radio" disabled id="rating1" name="rating" value="1" />
-                        <label htmlFor="1">Outstanding</label>
-                    </RadioInput>
-    
-                    <RadioInput>
-                        <input type="radio" disabled id="rating2" name="rating" value="2" />
-                        <label htmlFor="2">Very good</label>
-                    </RadioInput>
-    
-                    <RadioInput>
-                        <input type="radio" disabled id="rating3" name="rating" value="3" />
-                        <label htmlFor="3">Good</label>
-                    </RadioInput>
-    
-                    <RadioInput>
-                        <input type="radio" disabled id="rating4" name="rating" value="4" />
-                        <label htmlFor="4">Fair</label>
-                    </RadioInput>
-    
-                    <RadioInput>
-                        <input type="radio" disabled id="rating5" name="rating" value="5" />
-                        <label htmlFor="5">Slightly fair</label>
-                    </RadioInput>
-                </QuestionInput>
-            </QuestionField>
-        );
+  useEffect(() => {
+    if (!hasEvent) {
+      return;
     }
 
+    const evaulationRef = ref(db, `evaluation/${id}`);
+
+    const unsubscribe = onValue(evaulationRef, (snapshot) => {
+      if (snapshot.exists) {
+        const evaluation = snapshot.val();
+        if (evaluation) {
+          setQuestions(evaluation);
+          setInstruction(evaluation.instruction);
+          setReleasable(evaluation.release);
+        }
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [hasEvent]);
+
+  const handleAddQuestion = () => {
+    const uid = new Date().toISOString();
+
+    if (addQuestion === "rating") {
+      if (questions) {
+        setQuestions((prev) => ({
+          ...prev,
+          rating: [
+            ...prev.rating,
+            {
+              questionId: uid,
+              question: "",
+              answers: ["1", "2", "3", "4", "5"],
+              saved: false,
+              type: addQuestion,
+            },
+          ],
+        }));
+      } else {
+        setQuestions((prev) => ({
+          ...prev,
+          rating: [
+            {
+              questionId: uid,
+              question: "",
+              answers: ["1", "2", "3", "4", "5"],
+              saved: false,
+              type: addQuestion,
+            },
+          ],
+        }));
+      }
+    } else if (addQuestion === "comment") {
+      if (questions) {
+        setQuestions((prev) => ({
+          ...prev,
+          comment: [
+            ...prev.comment,
+            {
+              questionId: uid,
+              saved: false,
+              question: "",
+              type: addQuestion,
+            },
+          ],
+        }));
+      } else {
+        setQuestions((prev) => ({
+          ...prev,
+          comment: [
+            {
+              questionId: uid,
+              saved: false,
+              question: "",
+              type: addQuestion,
+            },
+          ],
+        }));
+      }
+    }
+  };
+
+  const handleCancel = () => {
+    setConfirmationAction(() => () => navigate(`/admin/events/${id}`));
+    setShowConfirmation(true);
+  };
+
+  const handleSave = (e) => {
+    e.preventDefault();
+    setConfirmationAction(() => async () => {
+      const savedRating = questions.rating.filter((q) => q.saved == true);
+      const savedComment = questions.comment.filter((c) => c.saved == true);
+
+      if (savedRating.length < 1 && savedComment.length < 1) {
+        setErrorMessage("There's no questions to save");
+        return;
+      }
+
+      if (!instruction || instruction == "") {
+        setErrorMessage("Please provide an instruction.");
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        const evaluationRef = ref(db, `evaluation/${id}`);
+        await set(evaluationRef, {
+          ["instruction"]: instruction,
+          rating: savedRating,
+          comment: savedComment,
+          release: false,
+        });
+
+        setSuccessMessage("Evaulation Form submitted");
+      } catch (error) {
+        setErrorMessage(error.message);
+      } finally {
+        setLoading(false);
+      }
+    });
+    setShowConfirmation(true);
+  };
+
+  const handleConfirm = () => {
+    if (confirmationAction) {
+      confirmationAction();
+    }
+    setShowConfirmation(false);
+  };
+
+  const handleCancelConfirm = () => {
+    setShowConfirmation(false);
+  };
+
+  const handleReleaseForm = async () => {
+    setConfirmationAction(() => async () => {
+      setLoading(true);
+      try {
+        const evaluationRef = ref(db, `evaluation/${id}`);
+        const snapshot = await get(evaluationRef);
+
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+
+          if (data) {
+            const release = data.release;
+            console.log(release);
+            if (!release) {
+              await update(evaluationRef, {
+                release: true,
+              });
+            } else {
+              const confirmation = confirm(
+                "This action will delete stundent's response"
+              );
+
+              if (!confirmation) {
+                setErrorMessage("Operation Cancelled");
+                return;
+              }
+
+              //   cont...======================
+            }
+          } else {
+            setErrorMessage("No Saved Form To Release.");
+            return;
+          }
+        } else {
+          setErrorMessage("No Saved Form To Release.");
+          return;
+        }
+      } catch (error) {
+        setErrorMessage(error.message);
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    setShowConfirmation(true);
+  };
 
   return (
     <Container>
+      <Release onClick={handleReleaseForm}>
+        {!releasable ? "Release Form" : "Alter Form"}
+      </Release>
+      <AddFormModal>
+        <Title>Create Event Evaluation</Title>
+        <div>
+          <Direction
+            placeholder="Write Short Instruction"
+            value={instruction}
+            onChange={(e) => setInstruction(e.target.value)}
+          />
+          <span>{200 - instruction.length} characters</span>
+        </div>
 
-        <AddFormModal>
-            <Title>Create Event Evaluation</Title>
-            <div>
-                <Direction placeholder='Write Short Instruction' required value={instruction} onChange={(e) => setInstruction(e.target.value)} />
-                <span>{200 - instruction.length} characters</span>
-            </div>
+        {questions?.rating.length > 0 &&
+          questions.rating.map((q) => (
+            <QuestionComponent
+              key={q.questionId}
+              questionData={q}
+              questions={questions}
+              setErrorMessage={setErrorMessage}
+              setQuestions={setQuestions}
+              event={event}
+            />
+          ))}
 
-            {questions?.rating.length > 0 && questions.rating.map((q) => (
-                <Question key={q.questionId} questionData={q} />
-            ))}
+        {questions &&
+          questions?.comment?.length > 0 &&
+          questions.comment.map((c) => (
+            <CommentComponent
+              key={c.questionId}
+              questionData={c}
+              questions={questions}
+              setQuestions={setQuestions}
+              setErrorMessage={setErrorMessage}
+              event={event}
+            />
+          ))}
 
-
-           <AddQuestion>
+        {event && event && event.status !== "Accomplished" && (
+          <AddQuestion>
             <p>Add Question</p>
             <div className="selectWrapper">
-<button type='button' onClick={handleAddQuestion}>+</button>
-            <select value={addQuestion} onChange={(e) => setAddQuestion(e.target.value)}>
+              <button type="button" onClick={handleAddQuestion}>
+                +
+              </button>
+              <select
+                value={addQuestion}
+                onChange={(e) => setAddQuestion(e.target.value)}
+              >
                 <option value="rating">Rating</option>
                 <option value="comment">Comment</option>
-            </select>
+              </select>
             </div>
-           </AddQuestion>
-        </AddFormModal>
+          </AddQuestion>
+        )}
 
+        <Buttons>
+          {event && event.status !== "Accomplished" && (
+            <button className="submit" type="submit" onClick={handleSave}>
+              SAVE
+            </button>
+          )}
+          <button className="reset" type="reset" onClick={handleCancel}>
+            {event && event.status !== "Accomplished" ? "CANCEL" : "BACK"}
+          </button>
+        </Buttons>
+      </AddFormModal>
 
-{errorMesage && <ErrorModal message={errorMesage} onClose={()=> setErrorMessage(null)} />}
+      {errorMesage && (
+        <ErrorModal
+          message={errorMesage}
+          onClose={() => setErrorMessage(null)}
+        />
+      )}
+      {showConfirmation && (
+        <ConfirmationModal
+          message="Are you sure you want to proceed?"
+          onConfirm={handleConfirm}
+          onCancel={handleCancelConfirm}
+        />
+      )}
+      {successMessage && (
+        <SuccessModal
+          message={successMessage}
+          onClose={() => setSuccessMessage(null)}
+        />
+      )}
+      {loading && <LoadingModal />}
     </Container>
-  )
-}
+  );
+};
 
-export default EvaluationForm
+export default EvaluationForm;
 const Container = styled.div`
-    display: flex;
-    justify-content: center;
-`
+  display: flex;
+  justify-content: center;
+  position: relative;
+`;
 
 const AddFormModal = styled.form`
-    flex: 1;
-    max-width: 800px;
-    margin: 1em 0;
-    height: fit-content;
-    max-height: 100%;
-    overflow-y: scroll;
-    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.7);
-    border-radius: 1em;
-    padding: 1em;
+  flex: 1;
+  max-width: 800px;
+  margin: 1em 0;
+  height: fit-content;
+  max-height: 100%;
+  overflow-y: scroll;
+  box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.7);
+  border-radius: 1em;
+  padding: 1em;
 
-
-    &::-webkit-scrollbar{
-        display: none;
-    }
-`
+  &::-webkit-scrollbar {
+    display: none;
+  }
+`;
 
 const Title = styled.p`
-    font-size: 1.2rem;
-    margin-bottom: 1em;
-    font-weight: 600
-`
-
+  font-size: 1.2rem;
+  margin-bottom: 1em;
+  font-weight: 600;
+`;
 
 const Direction = styled.textarea`
-    width: 100%;
-    height: 100px;
-    resize: none;
-    padding: 1em;
-    border: none;
-    outline: none;
-    box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.7);
-    border-radius: 0.5em;
-    font-size: 1rem;
-`
+  width: 100%;
+  height: 100px;
+  resize: none;
+  padding: 1em;
+  border: none;
+  outline: none;
+  box-shadow: 0px 0px 5px 0px rgba(0, 0, 0, 0.7);
+  border-radius: 0.5em;
+  font-size: 1rem;
+`;
 
 const AddQuestion = styled.div`
-margin-top: 1em;
-display: flex;
-flex-direction: column;
-align-items: flex-end;
+  margin-top: 1em;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 
-
-& p{
+  & p {
     font-size: 0.9rem;
     text-transform: uppercase;
     font-weight: 600;
     margin-bottom: 0.2em;
-}
+  }
 
-
-& .selectWrapper {
+  & .selectWrapper {
     display: flex;
     gap: 0.5em;
 
-    & button{
-        font-size: 1.2rem;
-        padding: 0.4em 1em;
-        border: none;
-        otline: none;
-        background: dodgerblue;
-        color: white;
-        cursor: pointer;
+    & button {
+      font-size: 1.2rem;
+      padding: 0.4em 1em;
+      border: none;
+      otline: none;
+      background: dodgerblue;
+      color: white;
+      cursor: pointer;
 
-
-        &:hover{
-            background: red;
-        }
-    }
-
-
-    & select{
-        padding: 0.4em 1em;
-    font-size: 0.9rem;
-    border: none;
-    otline: none;
-    background: dodgerblue;
-    color: white;
-    cursor: pointer;
-
-
-    &:hover{
+      &:hover {
         background: red;
-    }
-    }
-}
-`
-
-
-const QuestionField = styled.div`
-    margin: 1em 0;
-    box-shadow: 0px 0px 3px 0px rgba(0,0,0.6);
-    padding: 1em;
-    position: relative;
-
-    & .icons{
-        position: absolute;
-        top: 0.3em;
-        right: 0.5em;
-        display: flex;
-        align-items: center;
-        gap: 1em;
-
-
-        & .icon{
-            font-size: 1.5rem;
-            color: green;
-            cursor: pointer;
-            
-
-            &:hover{
-                color: red;
-            }
-        }
+      }
     }
 
+    & select {
+      padding: 0.4em 1em;
+      font-size: 0.9rem;
+      border: none;
+      otline: none;
+      background: dodgerblue;
+      color: white;
+      cursor: pointer;
 
+      &:hover {
+        background: red;
+      }
+    }
+  }
+`;
 
-`
+const Buttons = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 1em;
+  padding: 1em;
+  margin-top: 1em;
 
-const Input = styled.input`
-    width: 100%;
-    padding: 1em;
-    font-size: 1rem;
+  & button {
+    padding: 0.5em 0;
+    width: 100px;
+    border: none;
     outline: none;
-    border:none;
-    border-bottom: 2px solid dodgerblue;
-    display: inline-block;
-    margin-bottom: 0.5em;
-`
+    cursor: pointer;
+    transition: all 200ms;
+    color: white;
+    font-weight: bold;
+    border-radius: 0.2em;
 
-const QuestionInput = styled.div`
-    display: flex;
-    flex-direction: column;
+    &.submit {
+      background: green;
+    }
+    &.reset {
+      background: red;
+    }
+
+    &:hover {
+      background: dodgerblue;
+    }
+  }
 `;
 
-const RadioInput = styled.div`
-    margin-bottom: 0.5rem; /* Adjust spacing between radio button inputs */
-    display: flex;
-    gap: 1em;
-    padding-left: 1em;
+const Release = styled.button`
+  position: absolute;
+  right: 1.5em;
+  top: 1.5em;
+  padding: 0.8em 1.7em;
+  font-size: 1.2rem;
+  color: white;
+  background: red;
+  cursor: pointer;
+  border: none;
+  border-radius: 0.5em;
 `;
-
-const Radio = styled.input``;
