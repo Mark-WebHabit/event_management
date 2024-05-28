@@ -6,6 +6,7 @@ import { FaPowerOff } from "react-icons/fa";
 import { FaMagnifyingGlassChart, FaPeopleGroup } from "react-icons/fa6";
 
 import { courseOptions } from "../../courseOptions";
+import { useNavigate } from "react-router-dom";
 
 const EventHeader = ({
   eventData,
@@ -16,7 +17,11 @@ const EventHeader = ({
   handleOpenConfirmationModal,
   showTable,
   setShowTable,
+  evaluation,
+  id
 }) => {
+const navigate = useNavigate()
+
   return (
     <Header>
       <Title>
@@ -24,15 +29,15 @@ const EventHeader = ({
         <span> {eventData.status}</span>
       </Title>
       <Buttons className="buttons">
-        <Filter>
+       {showTable &&  <Filter>
           <Search
             placeholder="Search..."
             value={searchText}
             onChange={handleSearchInputChange}
           />
-        </Filter>
+        </Filter>}
 
-        <Filter>
+        {showTable && <Filter>
           <span>Course</span>
           <Select onChange={handleCourseChange} value={selectedCourse}>
             <Option disabled>Select Filter</Option>
@@ -43,7 +48,7 @@ const EventHeader = ({
               </Option>
             ))}
           </Select>
-        </Filter>
+        </Filter>}
         <Button
           $off={eventData.status !== "Ongoing" || !eventData.open}
           onClick={handleOpenConfirmationModal} // Open confirmation modal on button click
@@ -52,10 +57,14 @@ const EventHeader = ({
           <FaPowerOff />
           Attendance
         </Button>
+        <Button onClick={() => navigate(`/admin/event/evaluation/${id}`)}>
+          {evaluation ? "Form" : "+ Evaluation"}
+        </Button>
         <Button onClick={() => setShowTable(!showTable)}>
           {showTable ? <FaMagnifyingGlassChart /> : <FaPeopleGroup />}
           {showTable ? "Reports" : "Presents"}
         </Button>
+       
       </Buttons>
     </Header>
   );
