@@ -1,6 +1,7 @@
 export const courseOptions = [
   {
     course: "Bachelor of Science in Information Technology",
+    abbreviation: "BSIT",
 
     majors: [
       {
@@ -22,6 +23,7 @@ export const courseOptions = [
   },
   {
     course: "Bachelor of Science in Information System",
+    abbreviation: "BSIS",
     majors: [
       {
         major: "Technical Support",
@@ -45,6 +47,7 @@ export const courseOptions = [
   },
   {
     course: "Bachelor of Computer Games",
+    abbreviation: "BCG",
     majors: [
       {
         major: "Major in Dota",

@@ -144,8 +144,16 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const { username, studentId, email, password, course, major, section } =
-      formData;
+    const {
+      username,
+      studentId,
+      email,
+      password,
+      course,
+      major,
+      section,
+      year,
+    } = formData;
 
     if (
       !username ||
@@ -154,7 +162,8 @@ const Register = () => {
       !password ||
       !course ||
       !major ||
-      !section
+      !section ||
+      !year
     ) {
       setError("All Fields Required");
       return;
@@ -220,6 +229,7 @@ const Register = () => {
         course,
         section,
         role: "student",
+        year: year,
       });
 
       await signOut(auth);

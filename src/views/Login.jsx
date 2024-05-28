@@ -74,7 +74,7 @@ const Login = () => {
         navigate("student");
       }
     } catch (error) {
-      let errorMessage = error.message;
+      let errorMessage = "";
       if (
         error.code === "auth/user-not-found" ||
         error.code === "auth/wrong-password"
@@ -82,6 +82,8 @@ const Login = () => {
         errorMessage = "Invalid Email or Password";
       } else if (error.code === "auth/invalid-email") {
         errorMessage = "Invalid email format.";
+      } else if (error.code === "auth/invalid-credential") {
+        errorMessage = "Wrong email or password";
       }
       setError(errorMessage);
     } finally {
