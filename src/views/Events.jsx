@@ -23,6 +23,7 @@ import EditEventForm from "../components/EditEventForm.jsx";
 import ErrorModal from "../components/ErrorModal.jsx";
 import LoadingModal from "../components/LoadingModal.jsx";
 import SuccessModal from "../components/SuccessModal.jsx";
+import { useNavigate } from "react-router-dom";
 
 const Events = () => {
   const [filteredData, setFilteredData] = useState([]);
@@ -45,6 +46,7 @@ const Events = () => {
   const { events } = useSelector((state) => state.events);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(null);
+  const navigate = useNavigate();
 
   const canvasRef = useRef(null);
 
@@ -243,6 +245,7 @@ const Events = () => {
         <FilterStatus value={filterOption} onChange={handleFilterChange}>
           <option value="all">All</option>
           <option value="Scheduled">Scheduled</option>
+          <option value="Ongoing">Ongoing</option>
           <option value="Accomplished">Accomplished</option>
         </FilterStatus>
         <TriggerModal>
@@ -290,9 +293,20 @@ const Events = () => {
               </p>
             </ModalBody>
             <ModalFooter>
-              <EditButton onClick={() => setEditSelectedEvent(true)}>
-                Edit
-              </EditButton>
+              {selectedEvent.status !== "Accomplished" && (
+                <EditButton onClick={() => setEditSelectedEvent(true)}>
+                  Edit
+                </EditButton>
+              )}
+              {selectedEvent.status !== "Scheduled" && (
+                <ViewButton
+                  onClick={() => {
+                    navigate(`/admin/events/${selectedEvent.uid}`);
+                  }}
+                >
+                  View
+                </ViewButton>
+              )}
             </ModalFooter>
           </ModalContent>
         </Modal>
@@ -487,6 +501,8 @@ const CardWrapper = styled.div`
     ${(props) =>
       props.$status === "Accomplished"
         ? "rgba(0,255,0, 0.6)"
+        : props.$status === "Ongoing"
+        ? "rgba(0,0,255, 0.6)"
         : "rgba(255,0,0, 0.6)"};
 
   &:hover {
@@ -628,6 +644,10 @@ const EditButton = styled.button`
   &:hover {
     background-color: red;
   }
+`;
+
+const ViewButton = styled(EditButton)`
+  margin: 0 0.5em;
 `;
 
 const Form = styled.form`

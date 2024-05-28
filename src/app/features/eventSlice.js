@@ -24,7 +24,12 @@ export const fetchEvents = createAsyncThunk("events/fetchEvents", async () => {
       const data = { uid: key, ...result[key] };
       arr.push(data);
     });
-    return arr;
+
+    const sorted = arr.sort(
+      (a, b) => new Date(b.startDateTime) - new Date(a.startDateTime)
+    );
+
+    return sorted;
   }
 });
 

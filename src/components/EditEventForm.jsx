@@ -104,6 +104,7 @@ const EditEventForm = ({
                 name="title"
                 value={editedEvent.title}
                 onChange={handleInputChange}
+                disabled={event.status !== "Scheduled"}
               />
             </Label>
             <Label>
@@ -125,6 +126,7 @@ const EditEventForm = ({
                 name="startDateTime"
                 value={editedEvent.startDateTime}
                 onChange={handleInputChange}
+                disabled={event.status !== "Scheduled"}
               />
             </Label>
             <Label>
@@ -134,6 +136,7 @@ const EditEventForm = ({
                 name="endDateTime"
                 value={editedEvent.endDateTime}
                 onChange={handleInputChange}
+                disabled={event.status !== "Scheduled"}
               />
             </Label>
             <Label>

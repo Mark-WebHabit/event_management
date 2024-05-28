@@ -5,6 +5,8 @@ import Login from "./views/Login";
 import RegisterAdmin from "./views/RegisterAdmin";
 import Dashboard from "./views/Dashboard";
 import Events from "./views/Events";
+import EventDetails from "./views/EventDetails";
+
 // layout
 import Auth from "./layout/Auth";
 import Admin from "./layout/Admin";
@@ -28,6 +30,7 @@ function App() {
           <Route index path="" Component={Dashboard} />
           <Route index path="dashboard" Component={Dashboard} />
           <Route index path="events" Component={Events} />
+          <Route index path="events/:id" Component={EventDetails} />
         </Route>
       </Routes>
     </Router>

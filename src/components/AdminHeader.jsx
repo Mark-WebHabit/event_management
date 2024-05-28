@@ -68,7 +68,7 @@ const Wrapper = styled.div`
 
 const PageName = styled.h1`
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.2rem;
   cursor: pointer;
   transition: color 0.3s ease;
   display: flex;

@@ -14,7 +14,10 @@ export const fetchStudentCount = createAsyncThunk(
     // Check if snapshot exists and extract the number of children
     let studentCount = 0;
     if (snapshot.exists()) {
-      studentCount = snapshot.numChildren();
+      const students = snapshot.val();
+      const keys = Object.keys(students);
+
+      studentCount = keys.length;
     }
 
     return studentCount;

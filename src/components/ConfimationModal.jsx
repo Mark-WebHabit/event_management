@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import styled, { keyframes } from "styled-components";
-import { ReactComponent as ConfirmationIcon } from "/request.svg";
+// Import your SVG icon as an image
+import ConfirmationIcon from "/request.svg";
 
 const ConfirmationModal = ({ message, onConfirm, onCancel }) => {
   const [confirmed, setConfirmed] = useState(false);
@@ -18,8 +19,9 @@ const ConfirmationModal = ({ message, onConfirm, onCancel }) => {
   return (
     <Container>
       <ModalWrapper>
+        {/* Use the imported SVG icon as an image */}
         <IconWrapper>
-          <ConfirmationIcon />
+          <Icon src={ConfirmationIcon} alt="Confirmation Icon" />
         </IconWrapper>
         <Message>{message}</Message>
         <ButtonWrapper>
@@ -67,12 +69,13 @@ const ModalWrapper = styled.div`
 
 const IconWrapper = styled.div`
   margin-bottom: 20px;
+`;
 
-  svg {
-    width: 60px;
-    height: 60px;
-    fill: #ffc107;
-  }
+// Style the img tag for the icon
+const Icon = styled.img`
+  width: 60px;
+  height: 60px;
+  fill: #ffc107;
 `;
 
 const Message = styled.p`
